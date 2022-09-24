@@ -1,0 +1,140 @@
+﻿@page "/"
+@using ToDoList.Models
+@using ToDoList.Services
+
+@inject DialogService _dialogService
+@inject DataService _dbService
+
+<PageTitle>Index</PageTitle>
+
+<h1>To-Do List</h1>
+
+Never forget anything again
+
+<div class="container">
+    <div class="row py-5">
+        <div class="col">
+            <RadzenButton class="btn-custom-color-danger fw-bold" Text="Add Entry" Click="() => ShowCloseableFromOverlayDialog(null)"></RadzenButton>
+            <RadzenCard class="align-items-center col-md-12 col-lg-12">
+                <RadzenDataList WrapItems="true" AllowPaging="true" Data="@_toDoEntries" TItem="ToDoEntry" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true">
+                    <Template Context="entry">
+                        <RadzenCard Style="width: 100%; padding: 0; overflow: hidden;">
+                            <div class="container">
+                                <div class="row" style="margin-left: calc(var(--bs-gutter-x) * -1); margin-right: calc(var(--bs-gutter-x) * -1)">
+                                    <!-- Column 1 -->
+                                    <div class="col-lg-2 align-items-center justify-content-center product-title d-flex">
+                                        <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" Class="txt-color-title">@(entry.Title)</RadzenText>
+                                    </div>
+                                    <!-- Column 2 -->
+                                    <div class="col-lg-8 pt-4">
+                                        <div class="row ">
+                                            <div class="col-md-6 col-lg-8 ">
+                                                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="mb-0">Text</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Body2" class="mb-sm-2 mb-lg-0">@(entry.Text)</RadzenText>
+                                            </div>
+                                            <div class="col-md-6 col-lg-4">
+                                                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="mb-0">Done</RadzenText>
+                                                <RadzenCheckBox class="mb-sm-2 mb-lg-0" @bind-Value="@(entry.Done)" TValue="bool" Change=@(() => UpdateEntry(entry))></RadzenCheckBox>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Column 3 -->
+                                    <div class="col-lg-2 gap-2 d-flex p-4 align-content-center justify-content-center flex-column">
+                                        <RadzenButton Text="Edit" Class="w-100 btn-custom-color-danger fw-bold" Click="() => ShowCloseableFromOverlayDialog(entry)"/>
+                                        <RadzenButton Text="Delete" Class="w-100 btn-custom-color-add fw-bold" Click="(() => DeleteEntry(entry))"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </RadzenCard>
+                    </Template>
+                </RadzenDataList>
+            </RadzenCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    IEnumerable<ToDoEntry>? _toDoEntries;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntries();
+    }
+
+    private async Task LoadEntries()
+    {
+        var entries = await _dbService.LoadToDoEntries();
+
+        if (entries == null)
+        {
+            _toDoEntries = new List<ToDoEntry>();
+            return;
+        }
+
+        _toDoEntries = entries;
+    }
+
+    private void OrderList()
+    {
+        _toDoEntries = _toDoEntries.OrderByDescending(x => x.ChangedAt);
+    }
+
+    private async Task UpdateEntry(ToDoEntry entry)
+    {
+        await _dbService.UpdateEntry(entry);
+    }
+
+    private async Task CreateOrEditEntry(ToDoEntry entry)
+    {
+        if (string.IsNullOrEmpty(entry.Text) || string.IsNullOrEmpty(entry.Text))
+            return;
+
+        if (_toDoEntries != null && _toDoEntries.Any(x => x.Id == entry.Id))
+        {
+            await UpdateEntry(entry);
+            await LoadEntries();
+        }
+        else
+        {
+            await _dbService.AddEntry(entry);
+            await LoadEntries();
+            OrderList();
+        }
+    }
+
+    private async Task DeleteEntry(ToDoEntry entry)
+    {
+        await _dbService.DeleteEntry(entry);
+        await LoadEntries();
+    }
+
+    async Task ShowCloseableFromOverlayDialog(ToDoEntry? entry)
+    {
+        entry ??= new ToDoEntry();
+
+        var result = await _dialogService.OpenAsync("<h4 class=\"d-inline-block\">Add or edit the entry</h4>", ds =>
+            @<div >
+                <div class="gap-3 flex-column d-flex justify-content-center align-content-center">
+                    <div class="col-md-12 col-lg-12">
+                        <RadzenCard>
+                            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Title</RadzenText>
+                            <RadzenTextBox Placeholder="Enter the title" TValue="string" @bind-Value="@entry.Title" Class="w-100"/>
+                        </RadzenCard>
+                    </div>
+                    <div class="col-md-12 col-lg-12">
+                        <RadzenCard>
+                            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Text</RadzenText>
+                            <RadzenTextBox Placeholder="Enter the text" TValue="string" @bind-Value="@entry.Text" Class="w-100"/>
+                        </RadzenCard>
+                    </div>
+                </div>
+                <div class="row mt-5">
+                    <div class="col">
+                        <RadzenButton Text="Ok" Click="async () => { ds.Close(true); await CreateOrEditEntry(entry); }" Class="me-1 btn-custom-color-danger fw-bold" Style="width: 80px;"/>
+                        <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" Class="me-1 btn-custom-color-add fw-bold"/>
+                    </div>
+                </div>
+            </div>);
+    }
+
+}
