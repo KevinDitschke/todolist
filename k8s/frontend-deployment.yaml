@@ -6,23 +6,23 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app
+  name: frontend
   namespace: app-ns
 spec:
   selector:
     matchLabels:
-      app: app
+      app: frontend
   template:
     metadata:
       labels:
-        app: app
+        app: frontend
     spec:
       containers:
-      - name: app-container
+      - name: frontend-container
         image: thedevelopcat/todolist:latest
         env:
-        - name: SQL_CONNECTIONSTRING
-          value: "Server=sql-service.sql-ns.svc.cluster.local,1433;Database=Master;User Id=sa;Password=My_Super_Password123"
+        - name: BACKEND_URL
+          value: "backend-svc:8000"
         resources:
           limits:
             memory: "128Mi"
@@ -33,12 +33,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: sql-svc
+  name: frontend-svc
   namespace: app-ns
 spec:
   type: LoadBalancer
   selector:
-    app: app
+    app: frontend
   ports:
   - port: 80
     targetPort: 80
