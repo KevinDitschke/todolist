@@ -3,7 +3,7 @@ using ToDoList.Models;
 
 namespace ToDoList.Services;
 
-public class DataService
+public class DataService : IDataService
 {
     private readonly DatabaseContext _context;
 

@@ -7,12 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddTransient<DataService>();
+builder.Services.AddTransient<IDataService, DataService>();
 builder.Services.AddScoped<DialogService>();
 builder.Services.AddDbContextPool<DatabaseContext>(options =>
 {
-    options.UseSqlServer(Environment.GetEnvironmentVariable("SQL_CONNECTIONSTRING") ??
-                         @"Server=localhost,1433;Database=Master;User Id=sa;Password=My_Super_Password123");
+    options.UseMySQL(Environment.GetEnvironmentVariable("SQL_CONNECTIONSTRING") ??
+                         @"Server=localhost,1433;Database=Master;User Id=root;Password=123456");
     options.EnableDetailedErrors();
 });
 
